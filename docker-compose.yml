@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: simple_todo_backend
+    ports:
+      - "3000:3000"
+    
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+    environment:
+      - DB_HOST=todo_db
+      - DB_NAME=todo_db
+      - DB_PORT=5432
+      - DB_USER=todo_user
+      - DB_PASSWORD=todo_password
+
+    depends_on:
+      todo_db:
+        condition: service_healthy
+
+  todo_db:
+    image: postgres:17-alpine
+    container_name: simple_todo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    
+    environment:
+      - POSTGRES_DB=todo_db
+      - POSTGRES_USER=todo_user
+      - POSTGRES_PASSWORD=todo_password
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:
+
